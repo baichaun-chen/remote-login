@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>链接无效 - 豆包远程登录</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 48px 32px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .icon {
+            font-size: 72px;
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: 22px;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+        }
+        p {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        .hint {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+            text-align: left;
+        }
+        .hint h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .hint ul {
+            padding-left: 20px;
+            font-size: 13px;
+            color: #888;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔗</div>
+        <h1>链接无法使用</h1>
+        <p>{{ message }}</p>
+        <div class="hint">
+            <h3>可能的原因：</h3>
+            <ul>
+                <li>链接已过期（有效期 10 分钟）</li>
+                <li>链接已被使用过（一次性链接）</li>
+                <li>链接不正确或已被撤销</li>
+            </ul>
+            <p style="margin-top:12px; font-size:13px; color:#888;">请联系链接生成者重新获取新的登录链接。</p>
+        </div>
+    </div>
+</body>
+</html>

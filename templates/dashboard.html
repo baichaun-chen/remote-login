@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>远程登录管理看板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 1px solid #334155;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header h1 .icon { font-size: 24px; }
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .container {
+            padding: 24px 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: #475569;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .stat-card .sub {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .stat-card.green .value { color: #22c55e; }
+        .stat-card.blue .value { color: #3b82f6; }
+        .stat-card.yellow .value { color: #eab308; }
+        .stat-card.red .value { color: #ef4444; }
+        .stat-card.purple .value { color: #a855f7; }
+        .stat-card.cyan .value { color: #06b6d4; }
+
+        /* 面板 */
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header h2 {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-header .actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-ghost {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+        }
+        .btn-ghost:hover { color: #e2e8f0; border-color: #64748b; }
+        .btn-danger {
+            background: transparent;
+            color: #ef4444;
+            border: 1px solid #7f1d1d;
+        }
+        .btn-danger:hover { background: #7f1d1d; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+        /* 表格 */
+        .table-wrap {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            background: #1e293b;
+            z-index: 1;
+        }
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            color: #94a3b8;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #334155;
+            white-space: nowrap;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #1e293b;
+            color: #cbd5e1;
+        }
+        tbody tr:hover { background: #263449; }
+        .mono { font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; }
+        .token-text {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* 状态标签 */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-active { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+        .badge-used { background: #1e3a5f; color: #60a5fa; border: 1px solid #1e40af; }
+        .badge-expired { background: #3f3f46; color: #a1a1aa; border: 1px solid #52525b; }
+        .badge-success { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+        .badge-failed { background: #450a0a; color: #f87171; border: 1px solid #991b1b; }
+        .badge-pending { background: #422006; color: #fbbf24; border: 1px solid #92400e; }
+
+        /* 日志 */
+        .log-container {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 12px 16px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+        .log-line {
+            display: flex;
+            gap: 12px;
+            padding: 2px 0;
+        }
+        .log-time { color: #64748b; white-space: nowrap; }
+        .log-level { width: 50px; white-space: nowrap; }
+        .log-level.INFO { color: #3b82f6; }
+        .log-level.SUCCESS { color: #22c55e; }
+        .log-level.WARN { color: #eab308; }
+        .log-level.ERROR { color: #ef4444; }
+        .log-msg { color: #cbd5e1; word-break: break-all; }
+
+        /* 两列布局 */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        /* 链接弹窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal h3 { margin-bottom: 16px; font-size: 18px; }
+        .modal .link-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 16px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 13px;
+            color: #60a5fa;
+        }
+        .modal .qr-area {
+            margin: 16px 0;
+        }
+        .modal .qr-area img {
+            max-width: 180px;
+            border-radius: 8px;
+        }
+        .copy-hint {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><span class="icon">📊</span> 豆包远程登录 · 管理看板</h1>
+        <div class="status">
+            <span class="status-dot"></span>
+            <span id="serviceStatus">服务运行中</span>
+            <span style="margin:0 8px; color:#475569;">|</span>
+            <span id="lastUpdate">--:--:--</span>
+            <span style="margin:0 8px; color:#475569;">|</span>
+            <span id="uptime">运行 00:00:00</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="label">总链接数</div>
+                <div class="value" id="statTotal">0</div>
+                <div class="sub">累计生成</div>
+            </div>
+            <div class="stat-card green">
+                <div class="label">活跃链接</div>
+                <div class="value" id="statActive">0</div>
+                <div class="sub">未过期未使用</div>
+            </div>
+            <div class="stat-card cyan">
+                <div class="label">页面访问</div>
+                <div class="value" id="statVisits">0</div>
+                <div class="sub">登录页 PV</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="label">登录尝试</div>
+                <div class="value" id="statAttempts">0</div>
+                <div class="sub">提交登录次数</div>
+            </div>
+            <div class="stat-card green">
+                <div class="label">登录成功</div>
+                <div class="value" id="statSuccess">0</div>
+                <div class="sub">成功执行登录</div>
+            </div>
+            <div class="stat-card red">
+                <div class="label">登录失败</div>
+                <div class="value" id="statFailed">0</div>
+                <div class="sub">失败或异常</div>
+            </div>
+        </div>
+
+        <!-- 链接管理 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>🔗 链接管理</h2>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="generateLink()">+ 生成新链接</button>
+                    <button class="btn btn-ghost" onclick="refreshData()">刷新</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>创建时间</th>
+                            <th>过期时间</th>
+                            <th>访问次数</th>
+                            <th>状态</th>
+                            <th>登录结果</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="linkTableBody">
+                        <tr><td colspan="7"><div class="empty-state"><div class="icon">📭</div>暂无链接记录</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 两列：登录日志 + 访问日志 -->
+        <div class="two-col">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>✅ 登录操作日志</h2>
+                    <button class="btn btn-ghost btn-sm" onclick="clearLogs('login')">清空</button>
+                </div>
+                <div class="log-container" id="loginLog">
+                    <div class="empty-state"><div class="icon">📋</div>暂无登录记录</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>👁 页面访问日志</h2>
+                    <button class="btn btn-ghost btn-sm" onclick="clearLogs('visit')">清空</button>
+                </div>
+                <div class="log-container" id="visitLog">
+                    <div class="empty-state"><div class="icon">📋</div>暂无访问记录</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 服务信息 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>⚙️ 服务信息</h2>
+            </div>
+            <div style="padding: 20px;">
+                <table style="max-width: 600px;">
+                    <tr><td style="color:#94a3b8; width:140px;">本地地址</td><td class="mono" id="infoLocal">--</td></tr>
+                    <tr><td style="color:#94a3b8;">公网隧道</td><td class="mono" id="infoTunnel">--</td></tr>
+                    <tr><td style="color:#94a3b8;">隧道类型</td><td id="infoTunnelType">--</td></tr>
+                    <tr><td style="color:#94a3b8;">启动时间</td><td id="infoStartTime">--</td></tr>
+                    <tr><td style="color:#94a3b8;">豆包窗口</td><td id="infoDoubao">检测中...</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新链接弹窗 -->
+    <div class="modal-overlay" id="linkModal">
+        <div class="modal">
+            <h3>✅ 新链接已生成</h3>
+            <p style="color:#94a3b8; font-size:13px;">10 分钟内有效，一次性使用</p>
+            <div class="link-box" id="newLinkText">--</div>
+            <div class="qr-area" id="qrArea"></div>
+            <button class="btn btn-primary" onclick="copyLink()">复制链接</button>
+            <button class="btn btn-ghost" onclick="closeModal()" style="margin-left:8px;">关闭</button>
+            <div class="copy-hint" id="copyHint">点击按钮复制链接</div>
+        </div>
+    </div>
+
+    <script>
+        // 支持通过 file:// 直接打开 HTML：自动连接本地服务
+        const API_BASE = (location.protocol === 'file:') ? 'http://localhost:58231' : '';
+        let autoRefresh = true;
+        let refreshTimer = null;
+        let startTime = Date.now();
+
+        async function fetchStats() {
+            try {
+                const resp = await fetch(API_BASE + '/admin/api/stats');
+                const data = await resp.json();
+                updateStats(data);
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-CN');
+            } catch (e) {
+                document.getElementById('serviceStatus').textContent = '连接中断';
+                document.querySelector('.status-dot').style.background = '#ef4444';
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('statTotal').textContent = data.total_links || 0;
+            document.getElementById('statActive').textContent = data.active_links || 0;
+            document.getElementById('statVisits').textContent = data.total_visits || 0;
+            document.getElementById('statAttempts').textContent = data.login_attempts || 0;
+            document.getElementById('statSuccess').textContent = data.login_success || 0;
+            document.getElementById('statFailed').textContent = data.login_failed || 0;
+
+            // 链接表格
+            const tbody = document.getElementById('linkTableBody');
+            if (data.links && data.links.length > 0) {
+                tbody.innerHTML = data.links.map(link => `
+                    <tr>
+                        <td class="mono"><span class="token-text" title="${link.token}">${link.token.substring(0,16)}...</span></td>
+                        <td>${link.created}</td>
+                        <td>${link.expires}</td>
+                        <td>${link.visits || 0}</td>
+                        <td><span class="badge badge-${link.status_class}">${link.status}</span></td>
+                        <td>${link.login_result ? `<span class="badge badge-${link.login_class}">${link.login_result}</span>` : '-'}</td>
+                        <td>
+                            ${link.status === '活跃' ? `<button class="btn btn-danger btn-sm" onclick="revokeLink('${link.token}')">作废</button>` : ''}
+                            <button class="btn btn-ghost btn-sm" onclick="copyTokenLink('${link.token}')">复制</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="icon">📭</div>暂无链接记录</div></td></tr>';
+            }
+
+            // 登录日志
+            const loginLog = document.getElementById('loginLog');
+            if (data.login_logs && data.login_logs.length > 0) {
+                loginLog.innerHTML = data.login_logs.map(log => `
+                    <div class="log-line">
+                        <span class="log-time">${log.time}</span>
+                        <span class="log-level ${log.level}">${log.level}</span>
+                        <span class="log-msg">${log.message}</span>
+                    </div>
+                `).join('');
+                loginLog.scrollTop = loginLog.scrollHeight;
+            }
+
+            // 访问日志
+            const visitLog = document.getElementById('visitLog');
+            if (data.visit_logs && data.visit_logs.length > 0) {
+                visitLog.innerHTML = data.visit_logs.map(log => `
+                    <div class="log-line">
+                        <span class="log-time">${log.time}</span>
+                        <span class="log-level INFO">VISIT</span>
+                        <span class="log-msg">${log.ip} - ${log.path} ${log.ua ? '(' + log.ua.substring(0,50) + ')' : ''}</span>
+                    </div>
+                `).join('');
+                visitLog.scrollTop = visitLog.scrollHeight;
+            }
+
+            // 服务信息
+            document.getElementById('infoLocal').textContent = data.local_url || '--';
+            document.getElementById('infoTunnel').textContent = data.tunnel_url || '未连接';
+            document.getElementById('infoTunnelType').textContent = data.tunnel_type || '--';
+            document.getElementById('infoStartTime').textContent = data.start_time || '--';
+            document.getElementById('infoDoubao').textContent = data.doubao_window || '未检测到';
+
+            if (data.start_time) {
+                startTime = new Date(data.start_time).getTime();
+            }
+        }
+
+        function updateUptime() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+            const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            document.getElementById('uptime').textContent = `运行 ${h}:${m}:${s}`;
+        }
+
+        async function generateLink() {
+            try {
+                const resp = await fetch(API_BASE + '/admin/new-link');
+                const data = await resp.json();
+                if (data.link) {
+                    document.getElementById('newLinkText').textContent = data.link;
+                    const qrArea = document.getElementById('qrArea');
+                    if (data.qrcode) {
+                        qrArea.innerHTML = `<img src="${API_BASE}/admin/qrcode?t=${Date.now()}" alt="二维码">`;
+                    } else {
+                        qrArea.innerHTML = '';
+                    }
+                    document.getElementById('linkModal').classList.add('show');
+                    fetchStats();
+                }
+            } catch (e) {
+                alert('生成链接失败: ' + e.message);
+            }
+        }
+
+        function copyLink() {
+            const text = document.getElementById('newLinkText').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                document.getElementById('copyHint').textContent = '✅ 已复制到剪贴板';
+            }).catch(() => {
+                // 后备方案
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                document.getElementById('copyHint').textContent = '✅ 已复制到剪贴板';
+            });
+        }
+
+        function copyTokenLink(token) {
+            const base = API_BASE || window.location.origin;
+            const link = `${base}/login/${token}`;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('链接已复制');
+            }).catch(() => {
+                prompt('复制以下链接:', link);
+            });
+        }
+
+        async function revokeLink(token) {
+            if (!confirm('确定要作废此链接吗？')) return;
+            try {
+                await fetch(API_BASE + `/admin/revoke/${token}`, { method: 'POST' });
+                fetchStats();
+            } catch (e) {
+                alert('作废失败: ' + e.message);
+            }
+        }
+
+        async function clearLogs(type) {
+            try {
+                await fetch(API_BASE + `/admin/clear-logs/${type}`, { method: 'POST' });
+                fetchStats();
+            } catch (e) {}
+        }
+
+        function closeModal() {
+            document.getElementById('linkModal').classList.remove('show');
+        }
+
+        function refreshData() {
+            fetchStats();
+        }
+
+        // 自动刷新
+        function startAutoRefresh() {
+            refreshTimer = setInterval(() => {
+                if (autoRefresh) fetchStats();
+            }, 5000);
+        }
+
+        // 初始化
+        fetchStats();
+        startAutoRefresh();
+        setInterval(updateUptime, 1000);
+        updateUptime();
+
+        // 点击弹窗外部关闭
+        document.getElementById('linkModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>

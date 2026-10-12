@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>远程登录 - 豆包</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 400px;
+            animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        .logo h1 {
+            font-size: 22px;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+        .logo p {
+            font-size: 13px;
+            color: #888;
+            margin-top: 6px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            outline: none;
+            background: #fafafa;
+        }
+        .input-wrapper input:focus {
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        }
+        .input-wrapper input::placeholder {
+            color: #bbb;
+        }
+        .code-group {
+            display: flex;
+            gap: 10px;
+        }
+        .code-group input {
+            flex: 1;
+        }
+        .send-code-btn {
+            padding: 14px 16px;
+            border: 2px solid #667eea;
+            background: #fff;
+            color: #667eea;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            min-width: 110px;
+        }
+        .send-code-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: #fff;
+        }
+        .send-code-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102,126,234,0.4);
+        }
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .submit-btn.loading {
+            position: relative;
+            color: transparent;
+        }
+        .submit-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .message {
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-top: 16px;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .message.success {
+            display: block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        .message.error {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        .message.info {
+            display: block;
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #888;
+            margin-top: 12px;
+        }
+        .success-overlay {
+            display: none;
+            text-align: center;
+            padding: 20px 0;
+        }
+        .success-overlay.show {
+            display: block;
+        }
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        .success-overlay h2 {
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+        .success-overlay p {
+            color: #666;
+            font-size: 14px;
+        }
+        .form-content.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-content" id="formContent">
+            <form id="loginForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="phone">手机号码</label>
+                    <div class="input-wrapper">
+                        <input type="tel" id="phone" name="phone" placeholder="请输入手机号" maxlength="11" inputmode="numeric">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="code">验证码</label>
+                    <div class="code-group">
+                        <div class="input-wrapper" style="flex:1;">
+                            <input type="text" id="code" name="code" placeholder="请输入验证码" maxlength="6" inputmode="numeric">
+                        </div>
+                        <button type="button" class="send-code-btn" id="sendCodeBtn" onclick="sendCode()">获取验证码</button>
+                    </div>
+                </div>
+
+                <button type="button" class="submit-btn" id="submitBtn" onclick="doLogin()">登 录</button>
+
+                <div class="message" id="message"></div>
+            </form>
+
+            <div class="footer">
+                <div class="security-badge">🔒 链接一次性有效 · 数据端到端传输</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TOKEN = '{{ token }}';
+        let countdown = 0;
+        let countdownTimer = null;
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+        }
+
+        function hideMessage() {
+            document.getElementById('message').className = 'message';
+        }
+
+        function validatePhone(phone) {
+            return /^1[3-9]\d{9}$/.test(phone);
+        }
+
+        async function sendCode() {
+            const phone = document.getElementById('phone').value.trim();
+            if (!validatePhone(phone)) {
+                showMessage('请输入正确的手机号码', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sendCodeBtn');
+            btn.disabled = true;
+            btn.textContent = '发送中...';
+            hideMessage();
+
+            try {
+                const resp = await fetch('/api/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: TOKEN, phone: phone })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    showMessage(data.message || '验证码已发送，请注意查收短信', 'success');
+                    startCountdown();
+                } else {
+                    showMessage(data.message || '发送失败，请重试', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '获取验证码';
+                }
+            } catch (e) {
+                showMessage('网络错误，请检查连接后重试', 'error');
+                btn.disabled = false;
+                btn.textContent = '获取验证码';
+            }
+        }
+
+        function startCountdown() {
+            countdown = 60;
+            const btn = document.getElementById('sendCodeBtn');
+            btn.disabled = true;
+            btn.textContent = countdown + 's 后重发';
+            countdownTimer = setInterval(() => {
+                countdown--;
+                if (countdown <= 0) {
+                    clearInterval(countdownTimer);
+                    btn.disabled = false;
+                    btn.textContent = '获取验证码';
+                } else {
+                    btn.textContent = countdown + 's 后重发';
+                }
+            }, 1000);
+        }
+
+        async function doLogin() {
+            const phone = document.getElementById('phone').value.trim();
+            const code = document.getElementById('code').value.trim();
+
+            if (!validatePhone(phone)) {
+                showMessage('请输入正确的手机号码', 'error');
+                return;
+            }
+            if (!code || code.length < 4) {
+                showMessage('请输入正确的验证码', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.classList.add('loading');
+            hideMessage();
+
+            try {
+                const resp = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: TOKEN, phone: phone, code: code })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    // 弹出成功提示
+                    alert('登录成功！页面将自动关闭');
+                    // 自动关闭页面
+                    setTimeout(() => {
+                        window.close();
+                    }, 1000);
+                } else {
+                    showMessage(data.message || '登录失败，请重试', 'error');
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                }
+            } catch (e) {
+                showMessage('网络错误，请检查连接后重试', 'error');
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        }
+
+        // 手机号输入限制为数字
+        document.getElementById('phone').addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '');
+        });
+        document.getElementById('code').addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
+        // 回车提交
+        document.getElementById('code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doLogin();
+        });
+    </script>
+</body>
+</html>
